@@ -10,7 +10,7 @@ import os
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("프로그램")
+        self.setWindowTitle("LogXploler")
         self.setGeometry(100, 100, 800, 600)
         self.initUI()
 
