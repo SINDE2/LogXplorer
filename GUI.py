@@ -29,7 +29,7 @@ class MainWindow(QMainWindow):
         # 버튼 영역
         action_button = QPushButton("버튼")
         action_button.setStyleSheet("color: white; background-color: teal; font-size: 16px;")
-        action_button.setFixedHeight(150)
+        action_button.setFixedHeight(600)
         left_layout.addWidget(action_button)
 
         main_layout.addLayout(left_layout, 1)
