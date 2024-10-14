@@ -2,6 +2,7 @@ from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QFileDialog, \
     QWidget, QTextEdit, QScrollArea, QDateTimeEdit
 from PyQt5.QtCore import QDateTime
+import subprocess
 import sys
 import os
 
@@ -22,7 +23,7 @@ class MainWindow(QMainWindow):
         main_layout = QHBoxLayout()
         main_widget.setLayout(main_layout)
 
-        # 왼쪽 영역 (버튼, 프로그램명)
+        # 왼쪽 영역 (버튼)
         left_layout = QVBoxLayout()
 
         # 버튼 영역
@@ -30,11 +31,6 @@ class MainWindow(QMainWindow):
         action_button.setStyleSheet("color: white; background-color: teal; font-size: 16px;")
         action_button.setFixedHeight(150)
         left_layout.addWidget(action_button)
-
-        # 프로그램명 영역
-        program_label = QLabel("프로그래밍")
-        program_label.setStyleSheet("background-color: teal; color: white;")
-        left_layout.addWidget(program_label)
 
         main_layout.addLayout(left_layout, 1)
 
@@ -45,7 +41,13 @@ class MainWindow(QMainWindow):
         file_button = QPushButton("파일, 폴더 선택")
         file_button.setStyleSheet("background-color: teal; color: white;")
         file_button.clicked.connect(self.select_file)
+        file_button.setFixedHeight(50)
         right_layout.addWidget(file_button)
+
+        # 선택한 파일 경로 표시
+        self.file_path_label = QLabel("선택된 파일: 없음")
+        self.file_path_label.setStyleSheet("background-color: teal; color: white;")
+        right_layout.addWidget(self.file_path_label)
 
         # 시간 설정 영역
         time_layout = QHBoxLayout()
@@ -73,6 +75,12 @@ class MainWindow(QMainWindow):
 
         right_layout.addLayout(time_layout)
 
+        # 검색 시작 버튼
+        search_button = QPushButton("검색 시작")
+        search_button.setStyleSheet("background-color: teal; color: white;")
+        search_button.clicked.connect(self.load_event_logs)
+        right_layout.addWidget(search_button)
+
         # 로그 기록 영역
         log_frame = QWidget()
         log_frame.setStyleSheet("background-color: teal;")
@@ -96,31 +104,40 @@ class MainWindow(QMainWindow):
 
         self.log_lines = []
         self.current_log_index = 0
+        self.selected_file_path = None
 
     def select_file(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "파일 선택")
         if file_path:
-            self.analyze_log(file_path)
+            self.selected_file_path = file_path
+            self.file_path_label.setText(f"선택된 파일: {file_path}")
         else:
-            self.log_text.append("파일을 선택해 주세요.")
+            self.file_path_label.setText("선택된 파일: 없음")
 
-    def analyze_log(self, file_path):
-        if os.path.exists(file_path):
-            with open(file_path, 'r', encoding='utf-8') as file:
-                log_content = file.readlines()
-                self.log_lines = []
-                start_time = self.start_time_edit.dateTime().toPyDateTime()
-                end_time = self.end_time_edit.dateTime().toPyDateTime()
-                for line in log_content:
-                    timestamp_str = line.split(' ')[0]  # Assuming the timestamp is the first element
-                    try:
-                        timestamp = QDateTime.fromString(timestamp_str, "yyyy-MM-dd HH:mm:ss").toPyDateTime()
-                        if start_time <= timestamp <= end_time:
-                            self.log_lines.append(line)
-                    except ValueError:
-                        continue
+    def load_event_logs(self):
+        if not self.selected_file_path:
+            self.log_text.append("먼저 파일을 선택해 주세요.")
+            return
+
+        start_time = self.start_time_edit.dateTime().toString("yyyy-MM-ddTHH:mm:ss")
+        end_time = self.end_time_edit.dateTime().toString("yyyy-MM-ddTHH:mm:ss")
+        command = [
+            "powershell",
+            "-Command",
+            "Get-WinEvent -LogName 'Application' -ErrorAction SilentlyContinue | Where-Object { $_.TimeCreated -ge '{}' -and $_.TimeCreated -le '{}' } | Select-Object -First 100 | Format-Table -HideTableHeaders Message".format(
+                start_time, end_time)
+        ]
+
+        try:
+            result = subprocess.run(command, capture_output=True, text=True, shell=True)
+            if result.returncode == 0:
+                self.log_lines = result.stdout.splitlines()
                 self.current_log_index = 0
                 self.display_logs()
+            else:
+                self.log_text.append("로그를 불러오는 중 오류가 발생했습니다: PowerShell 명령 실행 실패")
+        except Exception as e:
+            self.log_text.append(f"로그를 불러오는 중 오류가 발생했습니다: {str(e)}")
 
     def display_logs(self):
         self.log_text.clear()
