@@ -7,12 +7,14 @@
    - 파일 탐색기에서 파일을 선택하는 기능
 
 3. **SelectF_example.py**
+   - 위의 기능을 보여주는 GUI를 포함한 코드
 
-4. **Setting_Time.py**
+5. **Setting_Time.py**
    - 시작 시간과 종료 시간을 설정하는 기능
    - 시작에서 종료 시간 사이의 로그만 출력
 
-5. **Setting_Time_example.py**
+6. **Setting_Time_example.py**
+   - 위의 기능을 보여주는 GUI를 포함한 코드
 
 ### 앞으로 추가될 기능
 - 버튼 구현
