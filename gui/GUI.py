@@ -6,7 +6,6 @@ import subprocess
 import sys
 import os
 
-
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
