@@ -1,5 +1,5 @@
-from SelectF import FileSelector
-from Setting_Time import TimeSetter
+from core.selectf import FileSelector
+from core.setting_time import TimeSetter
 
 class MainApp:
     def __init__(self):
