@@ -10,6 +10,8 @@ class TimeSetterWindow(QMainWindow):
         self.setGeometry(100, 100, 400, 200)
         self.initUI()
 
+
+
     def initUI(self):
         # 메인 위젯 설정
         main_widget = QWidget()
