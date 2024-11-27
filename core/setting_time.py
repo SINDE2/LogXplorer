@@ -22,3 +22,9 @@ class TimeSetter:
     def update_end_time(self):
         # 시작 시간에 1시간 추가하여 종료 시간 설정
         self.end_time = self.start_time.addSecs(3600)
+
+# 사용 예시
+if __name__ == "__main__":
+    time_setter = TimeSetter()
+    print(f"시작 시간: {time_setter.get_start_time()}")
+    print(f"종료 시간: {time_setter.get_end_time()}")
