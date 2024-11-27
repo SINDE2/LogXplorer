@@ -1,5 +1,9 @@
+import sys
+
+from PyQt5.QtWidgets import QApplication
 from selectf import FileSelector
 from setting_time import TimeSetter
+from gui import LogXplorer
 import win32evtlog
 
 class MainApp:
@@ -78,5 +82,7 @@ class MainApp:
             print("해당 파일에 관련된 로그가 없습니다.")
 
 if __name__ == "__main__":
-    app = MainApp()
-    app.run()
+    app = QApplication(sys.argv)
+    main_window = LogXplorer()
+    main_window.show()
+    sys.exit(app.exec_())
