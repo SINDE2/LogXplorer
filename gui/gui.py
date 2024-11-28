@@ -159,7 +159,7 @@ class LogXplorer(QMainWindow):
             # 로그에서 필요한 정보 추출
             try:
                 log_time = datetime.strptime(log["TimeGenerated"], "%Y-%m-%d %H:%M:%S")
-            except ValueError:
+            except (ValueError, TypeError):
                 continue
 
             # 선택한 파일과 관련된 로그인지 확인 (SourceName 또는 Message에 파일 경로 포함)
