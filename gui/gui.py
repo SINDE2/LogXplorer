@@ -2,11 +2,12 @@ import sys
 import os
 from datetime import datetime
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QPushButton, QLabel, QLineEdit,
+    QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QTextEdit,
     QTableWidget, QTableWidgetItem, QVBoxLayout, QHBoxLayout, QWidget,
     QTreeWidget, QTreeWidgetItem, QDialog, QGridLayout, QSplitter, QFileDialog
 )
 from PyQt5.QtCore import Qt, QMimeData
+from PyQt5.QtGui import QIcon
 from PyQt5.QtGui import QFont, QDragEnterEvent, QDropEvent
 from selectf import FileSelector
 from setting_time import TimeSetter
@@ -21,6 +22,7 @@ class LogXplorer(QMainWindow):
         self.time_setter = TimeSetter()
         self.log_viewer = LogViewer()
         self.main_app = MainApp()  # button.py의 MainApp 인스턴스 생성
+        self.setWindowIcon(QIcon('./icon.png'))
         self.initUI()
 
     def initUI(self):
@@ -61,6 +63,12 @@ class LogXplorer(QMainWindow):
 
         left_widget.setLayout(left_layout)
         main_splitter.addWidget(left_widget)
+
+        # 사용설명서 버튼 추가 (새 창 열기 버튼 아래에 추가)
+        manual_button = QPushButton("사용설명서")
+        manual_button.setFont(QFont('Arial', 12))
+        manual_button.clicked.connect(self.show_manual)
+        left_layout.addWidget(manual_button)
 
         # 오른쪽 레이아웃 - 파일 경로, 시간 범위, 로그 테이블
         right_widget = QWidget()
@@ -209,6 +217,44 @@ class LogXplorer(QMainWindow):
         except FileNotFoundError:
             print(f"{path} 경로를 찾을 수 없습니다.")
 
+    def show_manual(self):
+        # 사용설명서 창 표시 메서드 추가
+        manual_dialog = QDialog(self)
+        manual_dialog.setWindowTitle("LogXplorer 사용설명서")
+        manual_dialog.setGeometry(200, 200, 600, 400)
+
+        layout = QVBoxLayout()
+        
+        manual_text = QTextEdit()
+        manual_text.setReadOnly(True)
+        manual_text.setFont(QFont('Arial', 11))
+        
+        # 사용설명서 내용
+        manual_content = """
+        LogXplorer 사용설명서
+
+        1. 파일 선택 방법
+           - '파일 및 폴더 선택' 버튼을 클릭하여 파일 선택
+           - 파일을 창으로 직접 드래그 앤 드롭
+           - 왼쪽 파일 트리에서 파일 선택
+
+        2. 시간 범위 설정
+           - 원하시는 시작 시간과 종료 시간을 입력해주세요.
+           - 'YYYY-MM-DD HH:MM:SS' 형식으로 입력
+
+        3. 로그 분석
+           - 파일과 시간 범위 설정 후 '로그 분석' 버튼 클릭
+
+        4. 기타 기능
+           - 새로고침: 파일 트리 업데이트
+           - 새 창 열기: 별도의 LogXplorer 창 실행
+        """
+        
+        manual_text.setText(manual_content)
+        layout.addWidget(manual_text)
+        
+        manual_dialog.setLayout(layout)
+        manual_dialog.exec_()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
