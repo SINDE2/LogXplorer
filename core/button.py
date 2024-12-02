@@ -54,9 +54,23 @@ class MainApp(QWidget):
         """
         self.file_tree.clear()
         root = QTreeWidgetItem(self.file_tree, ["내 PC"])
-        self.add_drive(root, "C:")
-        self.add_drive(root, "D:")
-        self.add_drive(root, "E:")
+        
+        # 드라이브 아이콘 설정
+        self.drive_icon = QIcon("./file_icon.png")  # 공통 드라이브 아이콘
+        
+        # 각 드라이브에 동일한 아이콘 적용
+        c_drive = QTreeWidgetItem(root, ["로컬 디스크 (C:)"])
+        c_drive.setIcon(0, self.drive_icon)
+        c_drive.setData(0, 1, "C:")
+        
+        d_drive = QTreeWidgetItem(root, ["로컬 디스크 (D:)"])
+        d_drive.setIcon(0, self.drive_icon)
+        d_drive.setData(0, 1, "D:")
+        
+        e_drive = QTreeWidgetItem(root, ["로컬 디스크 (E:)"])
+        e_drive.setIcon(0, self.drive_icon)
+        e_drive.setData(0, 1, "E:")
+        
         root.setExpanded(True)
 
     def add_drive(self, parent, drive_letter):
