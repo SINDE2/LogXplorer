@@ -4,7 +4,7 @@ from datetime import datetime
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QTextEdit,
     QTableWidget, QTableWidgetItem, QVBoxLayout, QHBoxLayout, QWidget,
-    QTreeWidget, QTreeWidgetItem, QDialog, QGridLayout, QSplitter, QFileDialog
+    QTreeWidget, QTreeWidgetItem, QDialog, QGridLayout, QSplitter, QFileDialog, QMessageBox
 )
 from PyQt5.QtCore import Qt, QMimeData
 from PyQt5.QtGui import QIcon
@@ -146,6 +146,16 @@ class LogXplorer(QMainWindow):
 
     def analyze_logs(self):
         selected_file = self.file_path.text()
+
+        # 파일 선택 여부 확인
+        if not selected_file:
+            QMessageBox.warning(
+                self,
+                "파일 선택 오류",
+                "파일이 선택되지 않았습니다. 파일을 선택한 후 다시 시도하세요."
+            )
+            return  # 파일이 선택되지 않으면 함수 종료
+
         start_time_str = self.start_time.text()
         end_time_str = self.end_time.text()
 
@@ -186,11 +196,16 @@ class LogXplorer(QMainWindow):
                 self.table.setItem(row_idx + 1, 2, QTableWidgetItem(log["TimeGenerated"]))
                 self.table.setItem(row_idx + 1, 3, QTableWidgetItem(log["Message"]))
         else:
+            QMessageBox.information(
+                self,
+                "로그 없음",
+                "선택된 파일과 시간 범위에 해당하는 로그가 없습니다."
+            )
             self.table.setRowCount(0)
 
     def refresh_ui(self):
-        # UI 새로고침
-        self.main_app.refresh_file_tree()  # button.py의 기능 사용
+        # 기존의 button.py에 있는 메서드를 호출하여 파일 트리를 새로고침합니다.
+        self.main_app.refresh_ui()
 
     def open_new_window(self):
         # 새 창 열기
@@ -227,7 +242,7 @@ class LogXplorer(QMainWindow):
         
         manual_text = QTextEdit()
         manual_text.setReadOnly(True)
-        manual_text.setFont(QFont('Arial', 11))
+        manual_text.setFont(QFont('Arial', 12))
         
         # 사용설명서 내용
         manual_content = """
