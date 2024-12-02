@@ -1,8 +1,8 @@
 import sys
 
 from PyQt5.QtWidgets import QApplication
-from selectf import FileSelector
-from setting_time import TimeSetter
+from core.selectf import FileSelector
+from core.setting_time import TimeSetter
 from gui import LogXplorer
 import win32evtlog
 
