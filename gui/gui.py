@@ -6,9 +6,9 @@ from PyQt5.QtWidgets import (
     QTableWidget, QTableWidgetItem, QVBoxLayout, QHBoxLayout, QWidget,
     QTreeWidget, QTreeWidgetItem, QDialog, QGridLayout, QSplitter, QFileDialog, QMessageBox
 )
+from PyQt5 import  QtCore
 from PyQt5.QtCore import Qt, QMimeData
-from PyQt5.QtGui import QIcon
-from PyQt5.QtGui import QFont, QDragEnterEvent, QDropEvent
+from PyQt5.QtGui import QIcon, QFont, QDragEnterEvent, QDropEvent
 from selectf import FileSelector
 from setting_time import TimeSetter
 from log_recording import LogViewer
@@ -45,9 +45,9 @@ class LogXplorer(QMainWindow):
 
         # 파일 탐색기 트리 레이아웃
         self.file_tree = self.main_app.file_tree  # button.py에서 구현된 파일 트리 사용
+        self.file_tree.setParent(left_widget)  # 부모를 명확하게 설정
         self.file_tree.setAcceptDrops(True)  # 파일 트리 드래그 앤 드롭 허용
-        self.file_tree.dragEnterEvent = self.dragEnterEvent  # 드래그 이벤트 연결
-        self.file_tree.dropEvent = self.dropEvent  # 드롭 이벤트 연결
+        self.file_tree.setIconSize(QtCore.QSize(16, 16))  # 아이콘 크기 설정
         self.file_tree.itemClicked.connect(self.handle_item_click)
         left_layout.addWidget(self.file_tree)
 
@@ -124,6 +124,10 @@ class LogXplorer(QMainWindow):
         main_layout.addWidget(main_splitter)
         main_widget.setLayout(main_layout)
         self.setCentralWidget(main_widget)
+
+        # 트리 리프레시 및 업데이트 강제 실행
+        self.file_tree.update()
+        self.file_tree.repaint()
 
     def select_file(self):
         selected_file, _ = QFileDialog.getOpenFileName(self, "파일 선택", "", "All Files (*.*)")
@@ -216,21 +220,7 @@ class LogXplorer(QMainWindow):
         # 파일 트리 아이템 클릭 처리
         drive_letter = item.data(0, 1)
         if drive_letter:
-            self.populate_directory(item, drive_letter)
-
-    def populate_directory(self, parent_item, path):
-        # 디렉터리의 내용을 파일 트리에 추가
-        parent_item.takeChildren()
-        try:
-            for entry in os.listdir(path):
-                full_path = os.path.join(path, entry)
-                if os.path.isdir(full_path):
-                    sub_item = QTreeWidgetItem(parent_item, [entry])
-                    sub_item.setData(0, 1, full_path)
-        except PermissionError:
-            print(f"권한 부족으로 {path}의 내용을 읽을 수 없습니다.")
-        except FileNotFoundError:
-            print(f"{path} 경로를 찾을 수 없습니다.")
+            self.main_app.populate_directory(item, drive_letter)
 
     def show_manual(self):
         # 사용설명서 창 표시 메서드 추가
