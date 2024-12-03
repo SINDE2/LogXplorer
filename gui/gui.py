@@ -4,10 +4,10 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt, QDateTime
-from log_recording import enable_audit_policy, set_audit_with_powershell, parse_and_interpret_event_logs
-from button import MainApp
-from selectf import FileSelector
-from setting_time import TimeSetter
+from core.log_recording import enable_audit_policy, set_audit_with_powershell, parse_and_interpret_event_logs
+from core.button import MainApp
+from core.selectf import FileSelector
+from core.setting_time import TimeSetter
 
 class LogXplorer(QMainWindow):
     def __init__(self):
@@ -87,15 +87,15 @@ class LogXplorer(QMainWindow):
 
         # 파일 선택 및 시간 설정
         file_layout = QHBoxLayout()
-        file_label = QLabel("선택한 파일 경로:")
+        file_label = QLabel("선택한 파일 또는 폴더 경로:")
         file_label.setFont(QFont('Arial', 12))
         self.file_path = QLineEdit()
         self.file_path.setReadOnly(True)
         self.file_path.setFont(QFont('Arial', 12))
 
-        file_button = QPushButton("파일 선택")
+        file_button = QPushButton("파일 또는 폴더 선택")
         file_button.setFont(QFont('Arial', 12))
-        file_button.clicked.connect(self.select_file)
+        file_button.clicked.connect(self.select_file_or_folder)
 
         file_layout.addWidget(file_label)
         file_layout.addWidget(self.file_path)
@@ -150,12 +150,14 @@ class LogXplorer(QMainWindow):
         main_widget.setLayout(main_layout)
         self.setCentralWidget(main_widget)
 
-    def select_file(self):
-        # 파일 선택 다이얼로그 열기
+    def select_file_or_folder(self):
+        # 파일 또는 폴더 선택 다이얼로그 열기
         options = QFileDialog.Options()
-        selected_file, _ = QFileDialog.getOpenFileName(self, "파일 선택", self.selected_folder, "All Files (*)", options=options)
-        if selected_file:
-            self.file_path.setText(selected_file)
+        selected_path = QFileDialog.getExistingDirectory(self, "폴더 선택", self.selected_folder, options=options)
+        if not selected_path:
+            selected_path, _ = QFileDialog.getOpenFileName(self, "파일 선택", self.selected_folder, "All Files (*)", options=options)
+        if selected_path:
+            self.file_path.setText(selected_path)
 
     def refresh_ui(self):
         # 새로고침 버튼 기능: 선택된 폴더 내 파일 트리 업데이트
@@ -165,16 +167,16 @@ class LogXplorer(QMainWindow):
 
     def analyze_logs(self):
         # 로그 분석 기능
-        target_file = self.file_path.text()
-        if not target_file:
-            QMessageBox.warning(self, "경고", "파일을 선택해주세요.")
+        target_path = self.file_path.text()
+        if not target_path:
+            QMessageBox.warning(self, "경고", "파일 또는 폴더를 선택해주세요.")
             return
 
         # 로그 파싱 및 해석
         try:
             start_time = self.start_time.text()
             end_time = self.end_time.text()
-            events = parse_and_interpret_event_logs(target_file)
+            events = parse_and_interpret_event_logs(target_path)
 
             # 결과 영역에 로그 출력
             self.result_area.clear()
@@ -192,7 +194,7 @@ class LogXplorer(QMainWindow):
                         self.result_area.append(f"Process Name: {event['process_name']}")
                     self.result_area.append("-" * 50)
             else:
-                self.result_area.append("로그에서 해당 파일에 대한 이벤트를 찾을 수 없습니다.")
+                self.result_area.append("로그에서 해당 파일 또는 폴더에 대한 이벤트를 찾을 수 없습니다.")
 
             QMessageBox.information(self, "로그 분석 완료", "로그 분석이 완료되었습니다. 결과는 아래에 표시됩니다.")
         except Exception as e:
