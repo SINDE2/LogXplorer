@@ -172,8 +172,29 @@ class LogXplorer(QMainWindow):
 
         # 로그 파싱 및 해석
         try:
-            parse_and_interpret_event_logs(target_file)
-            QMessageBox.information(self, "로그 분석 완료", "로그 분석이 완료되었습니다. 결과는 콘솔에서 확인하세요.")
+            start_time = self.start_time.text()
+            end_time = self.end_time.text()
+            events = parse_and_interpret_event_logs(target_file)
+
+            # 결과 영역에 로그 출력
+            self.result_area.clear()
+            if events:
+                for event in events:
+                    self.result_area.append("-" * 50)
+                    self.result_area.append(f"Time: {event['time']}")
+                    self.result_area.append(f"User: {event['user_name']} ({event['user_sid']})")
+                    self.result_area.append(f"Domain: {event['domain_name']}")
+                    self.result_area.append(f"Accessed File: {event['object_name']}")
+                    self.result_area.append(f"Event Type: {event['event_type']}")
+                    if "access_type" in event:
+                        self.result_area.append(f"Access Type: {event['access_type']}")
+                    if "process_name" in event:
+                        self.result_area.append(f"Process Name: {event['process_name']}")
+                    self.result_area.append("-" * 50)
+            else:
+                self.result_area.append("로그에서 해당 파일에 대한 이벤트를 찾을 수 없습니다.")
+
+            QMessageBox.information(self, "로그 분석 완료", "로그 분석이 완료되었습니다. 결과는 아래에 표시됩니다.")
         except Exception as e:
             QMessageBox.critical(self, "오류", f"로그 분석 중 오류 발생: {str(e)}")
 
