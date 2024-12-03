@@ -1,268 +1,187 @@
-import sys
-import os
-from datetime import datetime
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QPushButton, QLabel, QLineEdit, QTextEdit,
-    QTableWidget, QTableWidgetItem, QVBoxLayout, QHBoxLayout, QWidget,
-    QTreeWidget, QTreeWidgetItem, QDialog, QGridLayout, QSplitter, QFileDialog, QMessageBox
+    QMainWindow, QPushButton, QLabel, QLineEdit, QTextEdit,
+    QVBoxLayout, QHBoxLayout, QWidget, QGridLayout, QMessageBox, QSplitter, QFrame, QFileDialog
 )
-from PyQt5 import  QtCore
-from PyQt5.QtCore import Qt, QMimeData
-from PyQt5.QtGui import QIcon, QFont, QDragEnterEvent, QDropEvent
+from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt, QDateTime
+from log_recording import enable_audit_policy, set_audit_with_powershell, parse_and_interpret_event_logs
+from button import MainApp
 from selectf import FileSelector
 from setting_time import TimeSetter
-from log_recording import LogViewer
-from button import MainApp  # button.py에서 필요한 클래스 가져오기
-
 
 class LogXplorer(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.file_selector = FileSelector()
-        self.time_setter = TimeSetter()
-        self.log_viewer = LogViewer()
-        self.main_app = MainApp()  # button.py의 MainApp 인스턴스 생성
-        self.setWindowIcon(QIcon('./icon.png'))
+        self.file_selector = FileSelector()  # FileSelector 인스턴스 생성
+        self.main_app = MainApp()  # MainApp 인스턴스 생성
+        self.time_setter = TimeSetter()  # TimeSetter 인스턴스 생성 (시간 설정 관리)
+        self.selected_folder = None  # 사용자가 탐색할 폴더
+        self.select_folder_dialog()  # 폴더 선택 창 표시
         self.initUI()
+
+    def select_folder_dialog(self):
+        """
+        프로그램 시작 시 탐색할 폴더를 선택하도록 폴더 선택 창을 표시
+        """
+        self.selected_folder = QFileDialog.getExistingDirectory(
+            self, "탐색할 폴더 선택", "", QFileDialog.ShowDirsOnly
+        )
+        if not self.selected_folder:
+            QMessageBox.warning(self, "경고", "폴더를 선택하지 않았습니다. 프로그램을 종료합니다.")
+            exit()  # 폴더가 선택되지 않은 경우 프로그램 종료
+
+        # 선택한 폴더에 대해 감사 정책 및 감사 규칙 설정
+        enable_audit_policy()
+        set_audit_with_powershell(self.selected_folder)
 
     def initUI(self):
         self.setWindowTitle("LogXplorer")
-        self.setGeometry(100, 100, 1200, 800)
-
-        # 드래그 앤 드롭 활성화
-        self.setAcceptDrops(True)
+        self.setGeometry(100, 100, 1400, 800)
 
         # 메인 위젯과 레이아웃
         main_widget = QWidget()
-        main_layout = QGridLayout()
+        main_layout = QVBoxLayout()
 
-        # 사이드 버튼과 메인 콘텐츠를 분리하는 스플리터
-        main_splitter = QSplitter(Qt.Horizontal)
+        # Splitter로 왼쪽 파일 탐색기와 오른쪽 로그 영역 분리
+        splitter = QSplitter(Qt.Horizontal)
 
-        # 왼쪽 레이아웃 - 버튼 및 트리 뷰
+        # 왼쪽 위젯: 파일 탐색기 트리와 버튼들
         left_widget = QWidget()
         left_layout = QVBoxLayout()
 
-        # 파일 탐색기 트리 레이아웃
-        self.file_tree = self.main_app.file_tree  # button.py에서 구현된 파일 트리 사용
-        self.file_tree.setParent(left_widget)  # 부모를 명확하게 설정
-        self.file_tree.setAcceptDrops(True)  # 파일 트리 드래그 앤 드롭 허용
-        self.file_tree.setIconSize(QtCore.QSize(16, 16))  # 아이콘 크기 설정
-        self.file_tree.itemClicked.connect(self.handle_item_click)
-        left_layout.addWidget(self.file_tree)
+        # 파일 탐색기 트리 추가 (MainApp의 파일 탐색기 사용)
+        self.file_tree = self.main_app.file_tree
+        self.file_tree.setFrameShape(QFrame.StyledPanel)  # 경계선 설정
+        self.file_tree.setMaximumWidth(250)  # 파일 탐색기 폭을 작게 조정
 
-        # 하단 버튼 레이아웃 (세로 배치)
-        refresh_button = self.main_app.refresh_button  # button.py에서 가져온 새로고침 버튼 사용
-        refresh_button.clicked.connect(self.refresh_ui)
-        left_layout.addWidget(refresh_button)
+        # 선택된 폴더 내 파일 탐색 설정
+        self.file_tree.clear()  # 기존 트리 초기화
+        self.main_app.populate_directory(self.file_tree.invisibleRootItem(), self.selected_folder)
+        left_layout.addWidget(self.file_tree, stretch=1)  # 파일 탐색기가 최대한 공간을 사용
 
+        # 왼쪽 하단에 추가 버튼들 (새로고침, 새 창 열기, 사용설명서)
+        refresh_button = self.main_app.refresh_button
+        refresh_button.clicked.connect(self.refresh_ui)  # 새로고침 기능 연결
         new_window_button = QPushButton("새 창 열기")
         new_window_button.setFont(QFont('Arial', 12))
-        new_window_button.clicked.connect(self.open_new_window)
-        left_layout.addWidget(new_window_button)
-
-        left_widget.setLayout(left_layout)
-        main_splitter.addWidget(left_widget)
-
-        # 사용설명서 버튼 추가 (새 창 열기 버튼 아래에 추가)
+        new_window_button.clicked.connect(self.open_new_window)  # 새로운 LogXplorer 창 열기
         manual_button = QPushButton("사용설명서")
         manual_button.setFont(QFont('Arial', 12))
         manual_button.clicked.connect(self.show_manual)
-        left_layout.addWidget(manual_button)
 
-        # 오른쪽 레이아웃 - 파일 경로, 시간 범위, 로그 테이블
+        # 버튼들을 하단으로 최대한 이동시키기 위한 레이아웃 설정
+        button_layout = QVBoxLayout()
+        button_layout.addWidget(refresh_button)
+        button_layout.addWidget(new_window_button)
+        button_layout.addWidget(manual_button)
+        button_layout.addStretch()  # 버튼 위의 공간을 확보하여 파일 탐색기가 위로 확장되도록 함
+
+        left_layout.addLayout(button_layout)
+
+        left_widget.setLayout(left_layout)
+        splitter.addWidget(left_widget)
+
+        # 오른쪽 레이아웃 - 파일 선택, 시간 설정, 로그 분석, 결과 표시
         right_widget = QWidget()
         right_layout = QVBoxLayout()
 
-        # 파일 선택 레이아웃
+        # 파일 선택 및 시간 설정
         file_layout = QHBoxLayout()
         file_label = QLabel("선택한 파일 경로:")
         file_label.setFont(QFont('Arial', 12))
         self.file_path = QLineEdit()
         self.file_path.setReadOnly(True)
         self.file_path.setFont(QFont('Arial', 12))
-        file_button = QPushButton("파일 및 폴더 선택")
+
+        file_button = QPushButton("파일 선택")
         file_button.setFont(QFont('Arial', 12))
         file_button.clicked.connect(self.select_file)
+
         file_layout.addWidget(file_label)
         file_layout.addWidget(self.file_path)
         file_layout.addWidget(file_button)
-        right_layout.addLayout(file_layout)
 
-        # 시간 범위 레이아웃
+        # 시간 설정 레이아웃
         time_layout = QHBoxLayout()
-        start_label = QLabel("시작 T:")
+        start_label = QLabel("시작 시간:")
         start_label.setFont(QFont('Arial', 12))
-        self.start_time = QLineEdit(self.time_setter.get_start_time())
+        self.start_time = QLineEdit()
         self.start_time.setFont(QFont('Arial', 12))
-        end_label = QLabel("종료 T:")
+
+        end_label = QLabel("종료 시간:")
         end_label.setFont(QFont('Arial', 12))
-        self.end_time = QLineEdit(self.time_setter.get_end_time())
+        self.end_time = QLineEdit()
         self.end_time.setFont(QFont('Arial', 12))
+
+        # TimeSetter 클래스를 사용해 시작 시간과 종료 시간 설정
+        self.start_time.setText(self.time_setter.get_start_time())
+        self.end_time.setText(self.time_setter.get_end_time())
+
         time_layout.addWidget(start_label)
         time_layout.addWidget(self.start_time)
         time_layout.addWidget(end_label)
         time_layout.addWidget(self.end_time)
-        right_layout.addLayout(time_layout)
 
-        # 로그 분석을 위한 테이블
-        self.table = QTableWidget()
-        self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["이벤트 ID", "소스 이름", "시간 생성", "메시지"])
-        right_layout.addWidget(self.table)
-
-        # 로그 분석 버튼
+        # 로그 분석 버튼 (아래로 이동)
         analyze_button = QPushButton("로그 분석")
         analyze_button.setFont(QFont('Arial', 12))
         analyze_button.clicked.connect(self.analyze_logs)
+
+        # 결과 표시 영역
+        self.result_area = QTextEdit()
+        self.result_area.setReadOnly(True)
+
+        # 오른쪽 레이아웃 구성
+        right_layout.addLayout(file_layout)
+        right_layout.addLayout(time_layout)
+        right_layout.addWidget(self.result_area, stretch=5)  # 결과 영역을 더 크게 설정
         right_layout.addWidget(analyze_button)
 
         right_widget.setLayout(right_layout)
-        main_splitter.addWidget(right_widget)
-        main_splitter.setSizes([300, 900])  # 스플리터 초기 크기 설정
+        splitter.addWidget(right_widget)
 
-        main_layout.addWidget(main_splitter)
+        # 스플리터 크기 설정 (왼쪽을 더 작게, 오른쪽을 더 크게)
+        splitter.setSizes([250, 1150])  # 파일 탐색기 영역을 작게, 로그 분석 영역을 크게 설정
+
+        # 메인 레이아웃에 스플리터 추가
+        main_layout.addWidget(splitter)
+
+        # 메인 위젯 설정
         main_widget.setLayout(main_layout)
         self.setCentralWidget(main_widget)
 
-        # 트리 리프레시 및 업데이트 강제 실행
-        self.file_tree.update()
-        self.file_tree.repaint()
-
     def select_file(self):
-        selected_file, _ = QFileDialog.getOpenFileName(self, "파일 선택", "", "All Files (*.*)")
+        # 파일 선택 다이얼로그 열기
+        options = QFileDialog.Options()
+        selected_file, _ = QFileDialog.getOpenFileName(self, "파일 선택", self.selected_folder, "All Files (*)", options=options)
         if selected_file:
             self.file_path.setText(selected_file)
 
-    def dragEnterEvent(self, event: QDragEnterEvent):
-        # 드래그 이벤트 처리
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-
-    def dropEvent(self, event: QDropEvent):
-        # 드롭 이벤트 처리
-        urls = event.mimeData().urls()
-        if urls:
-            file_path = urls[0].toLocalFile()
-            if os.path.isfile(file_path):
-                self.file_path.setText(file_path)
-                print(f"드롭된 파일 경로: {file_path}")
+    def refresh_ui(self):
+        # 새로고침 버튼 기능: 선택된 폴더 내 파일 트리 업데이트
+        self.file_tree.clear()
+        self.main_app.populate_directory(self.file_tree.invisibleRootItem(), self.selected_folder)
+        QMessageBox.information(self, "새로고침", "폴더 새로고침 완료!")
 
     def analyze_logs(self):
-        selected_file = self.file_path.text()
-
-        # 파일 선택 여부 확인
-        if not selected_file:
-            QMessageBox.warning(
-                self,
-                "파일 선택 오류",
-                "파일이 선택되지 않았습니다. 파일을 선택한 후 다시 시도하세요."
-            )
-            return  # 파일이 선택되지 않으면 함수 종료
-
-        start_time_str = self.start_time.text()
-        end_time_str = self.end_time.text()
-
-        try:
-            start_time = datetime.strptime(start_time_str, "%Y-%m-%d %H:%M:%S")
-            end_time = datetime.strptime(end_time_str, "%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            print("시간 형식이 잘못되었습니다. yyyy-MM-dd HH:mm:ss 형식을 사용하십시오.")
+        # 로그 분석 기능
+        target_file = self.file_path.text()
+        if not target_file:
+            QMessageBox.warning(self, "경고", "파일을 선택해주세요.")
             return
 
-        # 로그 분석을 위해 LogViewer 사용
-        logs = self.log_viewer.get_application_logs_for_file()
-        filtered_logs = []
-
-        for log in logs:
-            if "Error" in log:
-                continue  # 오류 로그는 건너뜁니다
-
-            # 로그에서 필요한 정보 추출
-            try:
-                log_time = datetime.strptime(log["TimeGenerated"], "%Y-%m-%d %H:%M:%S")
-            except (ValueError, TypeError):
-                continue
-
-            # 선택한 파일과 관련된 로그인지 확인 (SourceName 또는 Message에 파일 경로 포함)
-            if start_time <= log_time <= end_time and (selected_file in log["SourceName"] or selected_file in log["Message"]):
-                filtered_logs.append(log)
-
-        if filtered_logs:
-            self.table.setRowCount(len(filtered_logs) + 1)
-            self.table.setItem(0, 0, QTableWidgetItem("지정된 로그 분석 결과"))
-            self.table.setItem(0, 1, QTableWidgetItem("") )
-            self.table.setItem(0, 2, QTableWidgetItem("") )
-            self.table.setItem(0, 3, QTableWidgetItem("") )
-            for row_idx, log in enumerate(filtered_logs):
-                self.table.setItem(row_idx + 1, 0, QTableWidgetItem(str(log["EventID"])))
-                self.table.setItem(row_idx + 1, 1, QTableWidgetItem(log["SourceName"]))
-                self.table.setItem(row_idx + 1, 2, QTableWidgetItem(log["TimeGenerated"]))
-                self.table.setItem(row_idx + 1, 3, QTableWidgetItem(log["Message"]))
-        else:
-            QMessageBox.information(
-                self,
-                "로그 없음",
-                "선택된 파일과 시간 범위에 해당하는 로그가 없습니다."
-            )
-            self.table.setRowCount(0)
-
-    def refresh_ui(self):
-        # 기존의 button.py에 있는 메서드를 호출하여 파일 트리를 새로고침합니다.
-        self.main_app.refresh_ui()
+        # 로그 파싱 및 해석
+        try:
+            parse_and_interpret_event_logs(target_file)
+            QMessageBox.information(self, "로그 분석 완료", "로그 분석이 완료되었습니다. 결과는 콘솔에서 확인하세요.")
+        except Exception as e:
+            QMessageBox.critical(self, "오류", f"로그 분석 중 오류 발생: {str(e)}")
 
     def open_new_window(self):
-        # 새 창 열기
-        self.secondary_window = LogXplorer()
-        self.secondary_window.show()
-
-    def handle_item_click(self, item, column):
-        # 파일 트리 아이템 클릭 처리
-        drive_letter = item.data(0, 1)
-        if drive_letter:
-            self.main_app.populate_directory(item, drive_letter)
+        # 새로운 LogXplorer 인스턴스를 생성하여 새 창 열기
+        self.new_window = LogXplorer()
+        self.new_window.show()
 
     def show_manual(self):
-        # 사용설명서 창 표시 메서드 추가
-        manual_dialog = QDialog(self)
-        manual_dialog.setWindowTitle("LogXplorer 사용설명서")
-        manual_dialog.setGeometry(200, 200, 600, 400)
-
-        layout = QVBoxLayout()
-        
-        manual_text = QTextEdit()
-        manual_text.setReadOnly(True)
-        manual_text.setFont(QFont('Arial', 12))
-        
-        # 사용설명서 내용
-        manual_content = """
-        LogXplorer 사용설명서
-
-        1. 파일 선택 방법
-           - '파일 및 폴더 선택' 버튼을 클릭하여 파일 선택
-           - 파일을 창으로 직접 드래그 앤 드롭
-           - 왼쪽 파일 트리에서 파일 선택
-
-        2. 시간 범위 설정
-           - 원하시는 시작 시간과 종료 시간을 입력해주세요.
-           - 'YYYY-MM-DD HH:MM:SS' 형식으로 입력
-
-        3. 로그 분석
-           - 파일과 시간 범위 설정 후 '로그 분석' 버튼 클릭
-
-        4. 기타 기능
-           - 새로고침: 파일 트리 업데이트
-           - 새 창 열기: 별도의 LogXplorer 창 실행
-        """
-        
-        manual_text.setText(manual_content)
-        layout.addWidget(manual_text)
-        
-        manual_dialog.setLayout(layout)
-        manual_dialog.exec_()
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    main_window = LogXplorer()
-    main_window.show()
-    sys.exit(app.exec_())
+        # 사용 설명서 기능
+        QMessageBox.information(self, "사용 설명서", "이 프로그램은 로그 분석 및 파일 선택 기능을 제공합니다.")
