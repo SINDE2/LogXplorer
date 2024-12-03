@@ -55,7 +55,7 @@ def parse_and_interpret_event_logs(target_file):
     Args:
         target_file (str): 추적할 파일 경로
     """
-    log_type = 'Security'
+    log_type = 'Security'    # 필요에 따라 'Application', 'Security' 중 택 1
     server = None  # 로컬 시스템
     hand = win32evtlog.OpenEventLog(server, log_type)
 
