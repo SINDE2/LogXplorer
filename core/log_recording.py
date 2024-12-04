@@ -1,5 +1,6 @@
 import win32evtlog
 import subprocess
+import datetime
 
 def enable_audit_policy():
     """
@@ -49,12 +50,15 @@ def set_audit_with_powershell(target_path, user="Everyone"):
     except Exception as e:
         print(f"Error setting audit rule: {e}")
 
-def parse_and_interpret_event_logs(target_file):
+def parse_and_interpret_event_logs(target_file, start_time=None, end_time=None):
     """
     Windows Security 로그에서 특정 파일 관련 이벤트를 파싱하고 해석
     Args:
         target_file (str): 추적할 파일 경로
     """
+    start_time = datetime.datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S") if start_time else None
+    end_time = datetime.datetime.strptime(end_time, "%Y-%m-%d %H:%M:%S") if end_time else None
+
     log_type = 'Security'  #필요에 따라 Application으로 변경 가능
     server = None  # 로컬 시스템
     hand = win32evtlog.OpenEventLog(server, log_type)
@@ -83,17 +87,32 @@ def parse_and_interpret_event_logs(target_file):
 
     # 출력: 사람이 읽을 수 있는 형태로 정리
     for event in events:
-        print("-" * 50)
-        print(f"Time: {event['time']}")
-        print(f"User: {event['user_name']} ({event['user_sid']})")
-        print(f"Domain: {event['domain_name']}")
-        print(f"Accessed File: {event['object_name']}")
-        print(f"Event Type: {event['event_type']}")
-        if "access_type" in event:
-            print(f"Access Type: {event['access_type']}")
-        if "process_name" in event:
-            print(f"Process Name: {event['process_name']}")
-        print("-" * 50)
+        if start_time and end_time:
+            event_time = datetime.datetime.strptime(event["time"], "%Y-%m-%d %H:%M:%S")
+            if start_time <= event_time <= end_time:
+                print("-" * 50)
+                print(f"Time: {event['time']}")
+                print(f"User: {event['user_name']} ({event['user_sid']})")
+                print(f"Domain: {event['domain_name']}")
+                print(f"Accessed File: {event['object_name']}")
+                print(f"Event Type: {event['event_type']}")
+                if "access_type" in event:
+                    print(f"Access Type: {event['access_type']}")
+                if "process_name" in event:
+                    print(f"Process Name: {event['process_name']}")
+                print("-" * 50)
+        else:
+            print("-" * 50)
+            print(f"Time: {event['time']}")
+            print(f"User: {event['user_name']} ({event['user_sid']})")
+            print(f"Domain: {event['domain_name']}")
+            print(f"Accessed File: {event['object_name']}")
+            print(f"Event Type: {event['event_type']}")
+            if "access_type" in event:
+                print(f"Access Type: {event['access_type']}")
+            if "process_name" in event:
+                print(f"Process Name: {event['process_name']}")
+            print("-" * 50)
 
 
 def interpret_event(event_id, event_message, event_time):
@@ -186,11 +205,13 @@ def interpret_access_mask(access_mask):
 
 if __name__ == "__main__":
     # 추적할 파일 경로
-    target_path = r"C:\Users\SINDE\Downloads"
+    target_path = r"C:\Users\ursobad\Desktop\rev-2\t1\LogXplorer\test"
     enable_audit_policy()
     set_audit_with_powershell(target_path)
 
-    target_file = target_path + r"\test"
+    target_file = target_path + r""
+    start_time = "2024-12-04 14:07:14"
+    end_time = "2024-12-04 14:07:16"
 
     # # 로그 파싱 및 해석
-    parse_and_interpret_event_logs(target_file)
+    parse_and_interpret_event_logs(target_file, start_time, end_time)
