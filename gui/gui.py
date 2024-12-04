@@ -253,7 +253,7 @@ class LogXplorer(QMainWindow):
                 self,
                 "로그 용량 설정",
                 "최대 로그 크기 (MB):",
-                value=512,  # 기본값
+                value=128,  # 기본값
                 min=1,  # 최소값
                 max=10240  # 최대값
             )
