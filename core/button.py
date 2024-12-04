@@ -3,6 +3,7 @@ from PyQt5 import QtCore
 from PyQt5.QtWidgets import (
     QApplication, QVBoxLayout, QPushButton, QTreeWidget, QTreeWidgetItem, QWidget, QDialog, QLabel
 )
+import win32api
 import os
 import sys
 
@@ -41,7 +42,7 @@ class MainApp(QWidget):
 
     def populate_root_nodes(self):
         """
-        초기 트리에 루트 노드(드라이브)를 추가합니다.
+        초기 트리에 실제 존재하는 루트 노드(드라이브)를 추가합니다.
         """
         self.file_tree.clear()
         root = QTreeWidgetItem(self.file_tree, ["내 PC"])
@@ -49,19 +50,17 @@ class MainApp(QWidget):
         # 드라이브 아이콘 설정
         self.drive_icon = QIcon("./file_icon.png")  # 공통 드라이브 아이콘
 
+        # 실제 존재하는 드라이브 목록 가져오기
+        drives = win32api.GetLogicalDriveStrings()
+        drives = drives.split('\000')[:-1]
+
         # 각 드라이브에 동일한 아이콘 적용
-        c_drive = QTreeWidgetItem(root, ["로컬 디스크 (C:)"])
-        c_drive.setIcon(0, self.drive_icon)
-        c_drive.setData(0, 1, "C:")
+        for drive in drives:
+            drive_item = QTreeWidgetItem(root, [drive])
+            drive_item.setIcon(0, self.drive_icon)
+            drive_item.setData(0, 1, drive)
 
-        d_drive = QTreeWidgetItem(root, ["로컬 디스크 (D:)"])
-        d_drive.setIcon(0, self.drive_icon)
-        d_drive.setData(0, 1, "D:")
-
-        e_drive = QTreeWidgetItem(root, ["로컬 디스크 (E:)"])
-        e_drive.setIcon(0, self.drive_icon)
-        e_drive.setData(0, 1, "E:")
-
+        root.setExpanded(True)
         root.setExpanded(True)
 
     def add_drive(self, parent, drive_letter):
