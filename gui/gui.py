@@ -3,11 +3,12 @@ from PyQt5.QtWidgets import (
     QWidget, QSplitter, QFileDialog, QMessageBox, QInputDialog
 )
 from PyQt5.QtGui import QFont
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QCoreApplication
 from core.log_recording import set_eventlog_max_size, parse_and_interpret_event_logs, get_eventlog_usage, enable_audit_policy, set_audit_with_powershell
 from core.selectf import FileSelector
 from core.setting_time import TimeSetter
-
+import os
+import sys
 
 class LogXplorer(QMainWindow):
     def __init__(self):
@@ -76,7 +77,7 @@ class LogXplorer(QMainWindow):
         left_button_layout = QVBoxLayout()
         folder_reselect_button = QPushButton("폴더 재선택")
         folder_reselect_button.setFont(QFont('Arial', 12))
-        folder_reselect_button.clicked.connect(self.select_file_or_folder)
+        folder_reselect_button.clicked.connect(self.select_file_or_folder)  # 전체 설정 초기화
 
         log_size_button = QPushButton("로그 용량 설정")
         log_size_button.setFont(QFont('Arial', 12))
@@ -98,20 +99,22 @@ class LogXplorer(QMainWindow):
         right_widget = QWidget()
         right_layout = QVBoxLayout()
 
-        # 경로 선택 및 시간 설정
+        # 위쪽: 경로 선택 및 시간 설정
         path_and_time_layout = QHBoxLayout()
         self.file_path = QLineEdit()
         self.file_path.setFont(QFont('Arial', 12))
         self.file_path.setReadOnly(True)
-        self.file_path.setText(self.selected_folder)  # 기본 경로로 선택된 폴더 설정
+        self.file_path.setText(self.selected_folder)  # 기본 경로로 설정된 폴더
 
-        path_button = QPushButton("폴더 선택")
+        path_button = QPushButton("분석할 폴더 선택")
         path_button.setFont(QFont('Arial', 12))
-        path_button.clicked.connect(self.select_file_or_folder)
+        path_button.clicked.connect(self.select_analysis_folder)  # 분석 폴더 선택
 
-        path_and_time_layout.addWidget(QLabel("선택한 파일 혹은 폴더의 경로:"))
+        path_and_time_layout.addWidget(QLabel("분석할 폴더 경로:"))
         path_and_time_layout.addWidget(self.file_path, stretch=4)
         path_and_time_layout.addWidget(path_button)
+
+
 
         time_layout = QHBoxLayout()
         start_label = QLabel("시작 시간:")
@@ -156,15 +159,54 @@ class LogXplorer(QMainWindow):
         main_widget.setLayout(main_layout)
         self.setCentralWidget(main_widget)
 
-    def select_file_or_folder(self):
-        selected_path = QFileDialog.getExistingDirectory(self, "폴더 선택", self.selected_folder)
+    def select_analysis_folder(self):
+        """
+        분석할 폴더를 선택 (UI 초기화 없음).
+        """
+        selected_path = QFileDialog.getExistingDirectory(self, "분석할 폴더 선택", self.selected_folder)
         if selected_path:
             self.file_path.setText(selected_path)
+            QMessageBox.information(self, "폴더 선택 완료", f"분석할 폴더가 선택되었습니다: {selected_path}")
+
+    def select_file_or_folder(self):
+        """
+        폴더 재선택 후 전체 UI 초기화.
+        """
+        selected_path = QFileDialog.getExistingDirectory(self, "폴더 재선택", self.selected_folder)
+        if selected_path:
+            self.selected_folder = selected_path
             self.folder_content.setText(f"선택된 폴더: {selected_path}")
+
+            # 감사 정책 재적용
+            try:
+                enable_audit_policy()
+                set_audit_with_powershell(self.selected_folder)
+            except Exception as e:
+                QMessageBox.critical(self, "오류", f"폴더 설정 중 오류 발생: {str(e)}")
+                return
+
+            # UI 전체 초기화
+            self.initialize_ui_for_new_folder()
+
+            QMessageBox.information(self, "폴더 재선택 완료", f"새 폴더가 선택되었습니다: {self.selected_folder}")
+
+    def initialize_ui_for_new_folder(self):
+        """
+        새로운 폴더에 맞춰 UI를 초기화.
+        """
+        # 선택된 폴더 정보를 업데이트
+        self.folder_content.setText(f"선택된 폴더: {self.selected_folder}")
+
+        # 이벤트 로그 사용량 정보 업데이트
+        self.update_eventlog_usage()
+
+        # 로그 분석 결과 초기화
+        self.result_area.clear()
+        self.result_area.setText("새 폴더에 대한 로그 데이터를 불러오세요.")
 
     def update_eventlog_usage(self):
         """
-        Security 이벤트 로그 사용량을 GUI에 표시
+        Security 이벤트 로그 사용량을 업데이트.
         """
         try:
             usage_info = get_eventlog_usage('Security')
