@@ -286,16 +286,6 @@ def get_eventlog_usage(log_name='Security'):
             f"최신 레코드 시간\n- {newest_time.strftime('%Y-%m-%d %H:%M:%S') if newest_time else 'N/A'}\n",
         ]
 
-        if oldest_time and newest_time:
-            time_diff = newest_time - oldest_time
-            retention_days = time_diff.days
-            retention_hours = time_diff.total_seconds() / 3600
-
-            if retention_days > 0:
-                result.append(f"로그 보존 기간: {retention_days} 일")
-            else:
-                result.append(f"로그 보존 기간: {retention_hours:.1f} 시간")
-
         return "\n".join(result)
 
     except Exception as e:
