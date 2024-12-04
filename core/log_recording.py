@@ -82,7 +82,7 @@ def parse_and_interpret_event_logs(target_file, start_time=None, end_time=None):
                 event_message = event.StringInserts
                 event_time = event.TimeGenerated
 
-                if event_message and target_file in str(event_message).replace('\\\\', '\\'):
+                if event_message and target_file in str(event_message):
                     log_data = interpret_event(event_id, event_message, event_time)
                     if log_data:
                         events.append(log_data)
@@ -90,7 +90,7 @@ def parse_and_interpret_event_logs(target_file, start_time=None, end_time=None):
         return f"Error reading logs: {e}"
     finally:
         win32evtlog.CloseEventLog(hand)
-
+    print('done!')
     # 결과 문자열로 변환
     output = []
     for event in events:
@@ -109,6 +109,7 @@ def parse_and_interpret_event_logs(target_file, start_time=None, end_time=None):
         if "process_name" in event:
             output.append(f"Process Name: {event['process_name']}")
         output.append("-" * 50)
+    print(output[:3])
     return "\n".join(output)
 
 
@@ -200,7 +201,7 @@ def interpret_access_mask(access_mask):
     }
     return access_types.get(access_mask, f"Unknown Access (Mask: {access_mask})")
 
-def set_eventlog_max_size(log_name='Security', max_size_mb=512):
+def set_eventlog_max_size(log_name='Security', max_size_mb=128):
     """
     이벤트 로그의 최대 크기를 설정합니다.
     Args:
@@ -278,13 +279,11 @@ def get_eventlog_usage(log_name='Security'):
 
         # 결과 문자열로 반환
         result = [
-            f"로그 파일 위치: {real_log_path}",
             f"최대 크기: {max_size / (1024 * 1024):.2f} MB",
             f"현재 크기: {current_size / (1024 * 1024):.2f} MB",
             f"사용량: {(current_size / max_size) * 100:.1f}%",
-            f"총 레코드 수: {total_records:,} 개",
-            f"가장 오래된 레코드 시간: {oldest_time.strftime('%Y-%m-%d %H:%M:%S') if oldest_time else 'N/A'}",
-            f"최신 레코드 시간: {newest_time.strftime('%Y-%m-%d %H:%M:%S') if newest_time else 'N/A'}",
+            f"가장 오래된 레코드 시간\n- {oldest_time.strftime('%Y-%m-%d %H:%M:%S') if oldest_time else 'N/A'}\n",
+            f"최신 레코드 시간\n- {newest_time.strftime('%Y-%m-%d %H:%M:%S') if newest_time else 'N/A'}\n",
         ]
 
         if oldest_time and newest_time:
@@ -303,22 +302,22 @@ def get_eventlog_usage(log_name='Security'):
         return f"Error: {str(e)}"
 
 
-if __name__ == "__main__":
-    # 추적할 파일 경로
-    target_path = r""  # 로깅하고 싶은 파일 주소 입력
-    enable_audit_policy()
-    set_audit_with_powershell(target_path)
+# if __name__ == "__main__":
+#     # 추적할 파일 경로
+#     target_path = r""  # 로깅하고 싶은 파일 주소 입력
+#     enable_audit_policy()
+#     set_audit_with_powershell(target_path)
 
-    # Security 이벤트 로그 사용량 확인
-    set_eventlog_max_size()
-    get_eventlog_usage('Security')
-    print("\n")
+#     # Security 이벤트 로그 사용량 확인
+#     set_eventlog_max_size()
+#     get_eventlog_usage('Security')
+#     print("\n")
 
-    target_file = target_path + r""  # 파일 이름 입력
+#     target_file = target_path + r""  # 파일 이름 입력
 
-    # 이 파일 실행 시 시간 설정 조금 짧게 해야함
-    start_time = "2024-12-04 17:57:40"
-    end_time = "2024-12-04 18:15:16"
+#     # 이 파일 실행 시 시간 설정 조금 짧게 해야함
+#     start_time = "2024-12-04 17:57:40"
+#     end_time = "2024-12-04 18:15:16"
 
-    # # 로그 파싱 및 해석
-    parse_and_interpret_event_logs(target_file, start_time, end_time)
+#     # # 로그 파싱 및 해석
+#     parse_and_interpret_event_logs(target_file, start_time, end_time)

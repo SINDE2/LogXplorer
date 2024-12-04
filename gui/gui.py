@@ -7,6 +7,7 @@ from PyQt5.QtCore import Qt, QCoreApplication
 from core.log_recording import set_eventlog_max_size, parse_and_interpret_event_logs, get_eventlog_usage, enable_audit_policy, set_audit_with_powershell
 from core.selectf import FileSelector
 from core.setting_time import TimeSetter
+from core.button import MainApp
 import os
 import sys
 
@@ -68,8 +69,12 @@ class LogXplorer(QMainWindow):
         self.log_usage.setReadOnly(True)
         self.update_eventlog_usage()
 
+        # 선택된 폴더 세부 내용 (MainApp 트리 추가)
+        self.file_tree_widget = MainApp()  # MainApp 인스턴스를 생성합니다.
+        self.file_tree_widget.setFixedHeight(300)  # 크기 조정 (필요에 따라 설정)
         left_layout.addWidget(QLabel("선택 폴더 세부내용:"))
-        left_layout.addWidget(self.folder_content, stretch=2)
+        left_layout.addWidget(self.file_tree_widget)  # 트리를 추가합니다.
+
         left_layout.addWidget(QLabel("Security 이벤트 로그 사용량:"))
         left_layout.addWidget(self.log_usage, stretch=1)
 
@@ -229,6 +234,7 @@ class LogXplorer(QMainWindow):
         try:
             # `parse_and_interpret_event_logs` 호출
             self.result_area.clear()
+            target_path = target_path.replace('/', r"\\")
             result = parse_and_interpret_event_logs(target_path, start_time, end_time)
             if result:
                 self.result_area.setText(result)

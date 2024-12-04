@@ -20,11 +20,6 @@ class MainApp(QWidget):
 
         layout = QVBoxLayout()
 
-        # 새로고침 버튼
-        self.refresh_button = QPushButton("새로고침")
-        self.refresh_button.clicked.connect(self.refresh_ui)
-        layout.addWidget(self.refresh_button)
-
         # 파일 탐색기 스타일 트리 구조
         self.file_tree = QTreeWidget()
         self.file_tree.setHeaderHidden(True)
@@ -35,11 +30,6 @@ class MainApp(QWidget):
         self.populate_root_nodes()
 
         layout.addWidget(self.file_tree)
-
-        # 새 창 띄우기 버튼
-        self.new_window_button = QPushButton("새 창 열기")
-        self.new_window_button.clicked.connect(self.open_new_window)
-        layout.addWidget(self.new_window_button)
 
         # 메인 레이아웃 설정
         self.setLayout(layout)
@@ -84,58 +74,41 @@ class MainApp(QWidget):
 
     def handle_item_click(self, item, column):
         """
-        트리 항목 클릭 이벤트 처리
+        트리 항목 클릭 이벤트 처리.
         """
-        drive_letter = item.data(0, 1)
-        if drive_letter:
-            print(f"{drive_letter} 드라이브 클릭됨")
-            self.populate_directory(item, drive_letter)
+        try:
+            drive_letter = item.data(0, 1)
+            if drive_letter:
+                print(f"클릭된 항목: {drive_letter}")
+                self.populate_directory(item, drive_letter)
+            else:
+                print("잘못된 항목 데이터")
+        except Exception as e:
+            print(f"트리 항목 클릭 처리 중 오류 발생: {e}")
 
     def populate_directory(self, parent_item, path):
         """
-        선택된 디렉토리의 하위 항목을 동적으로 트리에 추가하고 아이콘을 설정합니다.
+        선택된 디렉토리의 하위 항목(폴더 및 파일)을 트리에 추가하고 아이콘을 설정합니다.
         """
-        parent_item.takeChildren()
+        parent_item.takeChildren()  # 기존 하위 항목 제거
         try:
             for entry in os.listdir(path):
                 full_path = os.path.join(path, entry)
+                sub_item = QTreeWidgetItem(parent_item, [entry])
                 if os.path.isdir(full_path):
-                    sub_item = QTreeWidgetItem(parent_item, [entry])
                     sub_item.setIcon(0, self.drive_icon)  # 폴더 아이콘 설정
+                    sub_item.setData(0, 1, full_path)
+                else:
+                    # 파일 아이콘 설정 (폴더와 구분하기 위해)
+                    file_icon = QIcon("./file_icon.png")  # 파일 아이콘 이미지 설정
+                    sub_item.setIcon(0, file_icon)
                     sub_item.setData(0, 1, full_path)
         except PermissionError:
             print(f"권한 부족으로 {path}의 내용을 읽을 수 없습니다.")
         except FileNotFoundError:
             print(f"{path} 경로를 찾을 수 없습니다.")
-
-    def refresh_ui(self):
-        """
-        새로고침 버튼 기능: 트리 및 기타 UI 초기화
-        """
-        print("새로고침 완료!")
-        self.populate_root_nodes()
-
-    def open_new_window(self):
-        """
-        새 창 띄우기 버튼 기능: QDialog를 띄움
-        """
-        message = "이것은 새로 열린 창입니다!"
-        self.secondary_window = SecondaryWindow(message)
-        self.secondary_window.exec_()
-
-
-class SecondaryWindow(QDialog):
-    def __init__(self, message):
-        super().__init__()
-        self.setWindowTitle("새 창")
-        self.setGeometry(200, 200, 400, 200)
-
-        layout = QVBoxLayout()
-        label = QLabel(message)
-        layout.addWidget(label)
-
-        self.setLayout(layout)
-
+        except Exception as e:
+            print(f"예기치 못한 오류 발생: {e}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
