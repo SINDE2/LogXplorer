@@ -4,10 +4,10 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt, QCoreApplication
-from log_recording import set_eventlog_max_size, parse_and_interpret_event_logs, get_eventlog_usage, enable_audit_policy, set_audit_with_powershell
-from selectf import FileSelector
-from setting_time import TimeSetter
-from button import MainApp
+from core.log_recording import set_eventlog_max_size, parse_and_interpret_event_logs, get_eventlog_usage, enable_audit_policy, set_audit_with_powershell
+from core.selectf import FileSelector
+from core.setting_time import TimeSetter
+from core.button import MainApp
 import os
 import sys
 
