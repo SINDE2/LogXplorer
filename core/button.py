@@ -9,10 +9,11 @@ import sys
 
 
 class MainApp(QWidget):
-    def __init__(self):
+    def __init__(self, folder_path=None):
         super().__init__()
-        # 아이콘 초기화 - 이미지 경로가 올바른지 확인해 주세요.
-        self.drive_icon = QIcon("./file_icon.png")  # 아이콘 설정
+        # 아이콘 초기화
+        self.drive_icon = QIcon("./file_icon.png")
+        self.folder_path = folder_path
         self.init_ui()
 
     def init_ui(self):
@@ -25,42 +26,44 @@ class MainApp(QWidget):
         self.file_tree = QTreeWidget()
         self.file_tree.setHeaderHidden(True)
         self.file_tree.itemClicked.connect(self.handle_item_click)
-        self.file_tree.setIconSize(QtCore.QSize(16, 16))  # QTreeWidget의 아이콘 크기 설정
+        self.file_tree.setIconSize(QtCore.QSize(16, 16))
 
-        # 기본 트리 노드 추가
-        self.populate_root_nodes()
+        # 선택된 폴더의 내용을 표시
+        self.populate_root_nodes(self.folder_path)
 
         layout.addWidget(self.file_tree)
-
-        # 메인 레이아웃 설정
         self.setLayout(layout)
 
-        if self.drive_icon.isNull():
-            print("Failed to load drive icon")
-        else:
-            print("Drive icon loaded successfully")
-
-    def populate_root_nodes(self):
+    def populate_root_nodes(self, folder_path=None):
         """
-        초기 트리에 실제 존재하는 루트 노드(드라이브)를 추가합니다.
+        초기 트리에 선택한 폴더의 내용을 추가합니다.
         """
         self.file_tree.clear()
-        root = QTreeWidgetItem(self.file_tree, ["내 PC"])
+        folder_name = os.path.basename(folder_path) if folder_path else "내 PC"
+        root = QTreeWidgetItem(self.file_tree, [folder_name])
 
-        # 드라이브 아이콘 설정
-        self.drive_icon = QIcon("./file_icon.png")  # 공통 드라이브 아이콘
+        # 폴더 아이콘 설정
+        self.drive_icon = QIcon("./file_icon.png")
 
-        # 실제 존재하는 드라이브 목록 가져오기
-        drives = win32api.GetLogicalDriveStrings()
-        drives = drives.split('\000')[:-1]
+        if folder_path:
+            # 선택한 폴더의 내용을 트리에 추가
+            try:
+                for entry in os.listdir(folder_path):
+                    full_path = os.path.join(folder_path, entry)
+                    item = QTreeWidgetItem(root, [entry])
+                    item.setIcon(0, self.drive_icon)
+                    item.setData(0, 1, full_path)
+            except Exception as e:
+                print(f"폴더 내용을 불러오는 중 오류 발생: {e}")
+        else:
+            # 드라이브 목록 추가 (기존 코드)
+            drives = win32api.GetLogicalDriveStrings()
+            drives = drives.split('\000')[:-1]
+            for drive in drives:
+                drive_item = QTreeWidgetItem(root, [drive])
+                drive_item.setIcon(0, self.drive_icon)
+                drive_item.setData(0, 1, drive)
 
-        # 각 드라이브에 동일한 아이콘 적용
-        for drive in drives:
-            drive_item = QTreeWidgetItem(root, [drive])
-            drive_item.setIcon(0, self.drive_icon)
-            drive_item.setData(0, 1, drive)
-
-        root.setExpanded(True)
         root.setExpanded(True)
 
     def add_drive(self, parent, drive_letter):
