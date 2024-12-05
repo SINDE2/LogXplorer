@@ -38,33 +38,35 @@ class MainApp(QWidget):
         """
         초기 트리에 선택한 폴더의 내용을 추가합니다.
         """
-        self.file_tree.clear()
-        folder_name = os.path.basename(folder_path) if folder_path else "내 PC"
-        root = QTreeWidgetItem(self.file_tree, [folder_name])
-
-        # 폴더 아이콘 설정
-        self.drive_icon = QIcon("./file_icon.png")
-
+        self.file_tree.clear()  # 기존 항목 제거
         if folder_path:
+            folder_name = os.path.basename(folder_path)
+            root = QTreeWidgetItem(self.file_tree, [folder_name])
+            root.setIcon(0, self.drive_icon)
+            root.setData(0, 1, folder_path)
+
             # 선택한 폴더의 내용을 트리에 추가
             try:
                 for entry in os.listdir(folder_path):
                     full_path = os.path.join(folder_path, entry)
                     item = QTreeWidgetItem(root, [entry])
-                    item.setIcon(0, self.drive_icon)
+                    if os.path.isdir(full_path):
+                        item.setIcon(0, self.drive_icon)
+                    else:
+                        file_icon = QIcon("./file_icon.png")
+                        item.setIcon(0, file_icon)
                     item.setData(0, 1, full_path)
             except Exception as e:
                 print(f"폴더 내용을 불러오는 중 오류 발생: {e}")
-        else:
-            # 드라이브 목록 추가 (기존 코드)
-            drives = win32api.GetLogicalDriveStrings()
-            drives = drives.split('\000')[:-1]
-            for drive in drives:
-                drive_item = QTreeWidgetItem(root, [drive])
-                drive_item.setIcon(0, self.drive_icon)
-                drive_item.setData(0, 1, drive)
 
-        root.setExpanded(True)
+            root.setExpanded(True)
+
+    def update_folder(self, new_folder_path):
+        """
+        폴더 경로를 업데이트하고 트리를 다시 그립니다.
+        """
+        self.folder_path = new_folder_path
+        self.populate_root_nodes(new_folder_path)
 
     def add_drive(self, parent, drive_letter):
         """

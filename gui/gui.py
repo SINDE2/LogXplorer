@@ -190,8 +190,13 @@ class LogXplorer(QMainWindow):
                 QMessageBox.critical(self, "오류", f"폴더 설정 중 오류 발생: {str(e)}")
                 return
 
-            # UI 전체 초기화
-            self.initialize_ui_for_new_folder()
+            # 트리 위젯 업데이트
+            if hasattr(self, 'file_tree_widget'):
+                self.file_tree_widget.update_folder(self.selected_folder)
+            else:
+                # 초기화된 트리가 없으면 새로 생성
+                self.file_tree_widget = MainApp(self.selected_folder)
+                self.left_layout.addWidget(self.file_tree_widget)
 
             QMessageBox.information(self, "폴더 재선택 완료", f"새 폴더가 선택되었습니다: {self.selected_folder}")
 
