@@ -4,10 +4,10 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt, QCoreApplication
-from core.log_recording import set_eventlog_max_size, parse_and_interpret_event_logs, get_eventlog_usage, enable_audit_policy, set_audit_with_powershell
-from core.selectf import FileSelector
-from core.setting_time import TimeSetter
-from core.button import MainApp
+from log_recording import set_eventlog_max_size, parse_and_interpret_event_logs, get_eventlog_usage, enable_audit_policy, set_audit_with_powershell
+from selectf import FileSelector
+from setting_time import TimeSetter
+from button import MainApp
 import os
 import sys
 
@@ -70,8 +70,8 @@ class LogXplorer(QMainWindow):
         self.update_eventlog_usage()
 
         # 선택된 폴더 세부 내용 (MainApp 트리 추가)
-        self.file_tree_widget = MainApp()  # MainApp 인스턴스를 생성합니다.
-        self.file_tree_widget.setFixedHeight(300)  # 크기 조정 (필요에 따라 설정)
+        self.file_tree_widget = MainApp(self.selected_folder)  # 폴더 경로를 전달
+        self.file_tree_widget.setFixedHeight(300)
         left_layout.addWidget(QLabel("선택 폴더 세부내용:"))
         left_layout.addWidget(self.file_tree_widget)  # 트리를 추가합니다.
 
