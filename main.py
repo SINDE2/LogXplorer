@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QApplication
-from gui import LogXplorer
+from gui.gui import LogXplorer
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
