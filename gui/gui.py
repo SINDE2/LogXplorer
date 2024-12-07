@@ -171,6 +171,7 @@ class LogXplorer(QMainWindow):
         selected_path = QFileDialog.getExistingDirectory(self, "분석할 폴더 선택", self.selected_folder)
         if selected_path:
             self.file_path.setText(selected_path)
+            set_audit_with_powershell(selected_path)
             QMessageBox.information(self, "폴더 선택 완료", f"분석할 폴더가 선택되었습니다: {selected_path}")
 
     def select_file_or_folder(self):
@@ -242,7 +243,7 @@ class LogXplorer(QMainWindow):
             target_path = target_path.replace('/', r"\\")
             result = parse_and_interpret_event_logs(target_path, start_time, end_time)
             if result:
-                self.result_area.setText(result)
+                self.result_area.setHtml(result)
             else:
                 self.result_area.setText("해당 파일 또는 폴더에 대한 이벤트 로그가 없습니다.")
         except Exception as e:
@@ -272,4 +273,4 @@ class LogXplorer(QMainWindow):
             QMessageBox.critical(self, "오류", f"로그 크기 설정 중 오류 발생: {str(e)}")
 
     def show_manual(self):
-        QMessageBox.information(self, "사용 설명서", "프로그램 사용 방법 설명.")
+        QMessageBox.information(self, "사용 설명서", "시간 설정 후 로그 분석 버튼 클릭")
