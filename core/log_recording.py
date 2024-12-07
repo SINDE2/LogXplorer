@@ -110,7 +110,7 @@ def parse_and_interpret_event_logs(target_file, start_time=None, end_time=None):
             output.append(f"Process Name: {event['process_name']}")
         output.append("-" * 50)
     print(output[:3])
-    return "\n".join(output)
+    return "<br>".join(output)
 
 
 
@@ -145,22 +145,22 @@ def interpret_event(event_id, event_message, event_time):
         # 이벤트 ID 별 해석
         if event_id == 4663:  # 객체 액세스 이벤트
             access_type = interpret_access_mask(data_mapping["access_mask"])
-            event_type = "File Access Attempt"
+            event_type = "<span style=\"color : red\">File Access Attempt</span>"
         elif event_id == 4656:  # 핸들 요청
-            access_type = "Handle Requested"
-            event_type = "File Handle Requested"
+            access_type = "<span style=\"color : green\">Handle Requested</span>"
+            event_type = "<span style=\"color : green\">File Handle Requested</span>"
         elif event_id == 4658:  # 핸들 닫기
-            access_type = "Handle Closed"
-            event_type = "File Handle Closed"
+            access_type = "<span style=\"color : blue\">Handle Closed</span>"
+            event_type = "<span style=\"color : blue\">File Handle Closed</span>"
         elif event_id == 4670:  # 권한 변경
-            access_type = "Permissions Changed"
-            event_type = "File Permissions Changed"
+            access_type = "<span style=\"color : indigo\">Permissions Changed</span>"
+            event_type = "<span style=\"color : indigo\">File Permissions Changed</span>"
         elif event_id == 5140:  # 네트워크 공유 파일 액세스
-            access_type = "Network Share Access"
-            event_type = "Network File Access"
+            access_type = "<span style=\"color : violet\">Network Share Access</span>"
+            event_type = "<span style=\"color : violet\">Network File Access</span>"
         else:
-            access_type = "Unknown Access"
-            event_type = "Unknown Event"
+            access_type = "<span style=\"color : gray\">Unknown Access</span>"
+            event_type = "<span style=\"color : gray\">Unknown Event</span>"
 
         # 해석된 데이터 반환
         return {
@@ -197,9 +197,9 @@ def interpret_access_mask(access_mask):
         "0x80": "ReadAttributes",
         "0x100": "WriteAttributes",
         "0x10000": "DELETE",
-        "0x20000": "Write Attributes"
+        "0x20000": "Write Attribute"
     }
-    return access_types.get(access_mask, f"Unknown Access (Mask: {access_mask})")
+    return '<span style=\"color : red\">'+access_types.get(access_mask, f"Unknown Access (Mask: {access_mask})")+'</span>'
 
 def set_eventlog_max_size(log_name='Security', max_size_mb=128):
     """
